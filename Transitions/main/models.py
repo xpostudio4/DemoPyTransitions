@@ -10,7 +10,7 @@ from django_transitions.workflow import StateMachineMixinBase
 
 
 class UserStatus(StatusBase):
-
+    # STATES
     CREATED = 'created'
     PRE_AUTH = 'pre-authenticated'
     INV_ACCEPTED = 'invitation-accepted'
@@ -19,9 +19,17 @@ class UserStatus(StatusBase):
     AUTH_REVOKED = 'authentication_title-revoked'
     ARCHIVED = 'archived'
 
-    SM_INITIAL_STATE = CREATED
+    # TRANSITIONS
+    ACCEPT = 'accept_invitation'
+    SIGN = 'first_sign_in'
+    AUTH_FAIL = 'authentication_fail'
+    AUTH_SUCCESS = 'authentication_success'
+    SET_INACTIVE = 'set_inactive'
+    SET_ACTIVE = 'set_active'
 
-    SM_STATES_OLD = [
+    SM_INITIAL_STATE = PRE_AUTH
+
+    SM_STATES = [
         {
             'name': 'created'
         },
@@ -44,7 +52,7 @@ class UserStatus(StatusBase):
         }
     ]
 
-    SM_STATES = [
+    SM_STATES_OLD = [
         CREATED,
         PRE_AUTH,
         INV_ACCEPTED,
@@ -63,6 +71,15 @@ class UserStatus(StatusBase):
         (AUTH_REVOKED, 'Title Revoked'),
         (ARCHIVED, 'Archived'),
     )
+
+    TRANSITION_LABELS = {
+        ACCEPT: {'label': 'Accept Invitation'},
+        SIGN: {'label': 'First sign in'},
+        AUTH_FAIL: {'label': 'Authentication Fail'},
+        AUTH_SUCCESS: {'label': 'Authentication Success'},
+        SET_INACTIVE: {'label': 'Set Inactive'},
+        SET_ACTIVE: {'label': 'Set Active'},
+    }
 
     SM_TRANSITIONS = [
         {
@@ -121,21 +138,33 @@ class UserMachineMixin(StateMachineMixinBase):
 
     machine = Machine(
         model=None,
+        auto_transitions=False,
         **status_class.get_kwargs()
     )
 
     @property
-    def main_state(self):
+    def state(self):
         """Get the items workflowstate or the initial state if none is set."""
         if self.user_state:
             return self.user_state
         return self.machine.initial
 
-    @main_state.setter
-    def main_state(self, value):
+    @state.setter
+    def state(self, value):
         """Set the items workflow state."""
         self.user_state = value
         return self.user_state
+
+    def get_wf_graph(self):
+        """Get the graph for this machine."""
+        diagram_cls = MachineFactory.get_predefined(graph=True, nested=True)
+        machine = diagram_cls(
+            model=self,
+            auto_transitions=False,
+            title=type(self).__name__,
+            **self.status_class.get_kwargs()  # noqa: C815
+        )
+        return machine.get_graph()
 
 
 class User(UserMachineMixin, AbstractUser):
