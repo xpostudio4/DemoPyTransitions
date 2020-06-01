@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from transitions import Machine
-from transitions.extensions import HierarchicalGraphMachine as Machine
+from transitions.extensions import HierarchicalMachine as Machine
 
 # Create your models here.
 
@@ -12,7 +12,7 @@ class User(AbstractUser):
     # around the globe.
     name = models.CharField(("Name of User"), blank=True, max_length=255)
 
-    states = [
+    STATES = [
         {
             'name': 'created'
         },
@@ -35,7 +35,7 @@ class User(AbstractUser):
         }
     ]
 
-    max_tries = 3
+    MAX_TRIES = 3
 
     def __init__(self, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
@@ -43,7 +43,7 @@ class User(AbstractUser):
         self.try_counter = 0
         self.machine = Machine(
             model=self,
-            states=User.states,
+            states=User.STATES,
             initial='created'
         )
 
