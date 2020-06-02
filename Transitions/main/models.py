@@ -26,8 +26,9 @@ class UserStatus(StatusBase):
     AUTH_SUCCESS = 'authentication_success'
     SET_INACTIVE = 'set_inactive'
     SET_ACTIVE = 'set_active'
+    REVOKE_TITLE = 'revoke_title'
 
-    SM_INITIAL_STATE = PRE_AUTH
+    SM_INITIAL_STATE = CREATED
 
     SM_STATES = [
         {
@@ -79,6 +80,7 @@ class UserStatus(StatusBase):
         AUTH_SUCCESS: {'label': 'Authentication Success'},
         SET_INACTIVE: {'label': 'Set Inactive'},
         SET_ACTIVE: {'label': 'Set Active'},
+        REVOKE_TITLE: {'label': 'Revoke Title'},
     }
 
     SM_TRANSITIONS = [
@@ -117,20 +119,18 @@ class UserStatus(StatusBase):
             'trigger': 'set_active',
             'source': 'authenticated_inactive',
             'dest': 'authenticated_active'
+        },
+        {
+            'trigger': 'revoke_title',
+            'source': ['authenticated_inactive', 'authenticated_active'],
+            'dest': 'authenticated_title-revoked'
+        },
+        {
+            'trigger': 'archive_user',
+            'source': 'authenticated_title-revoked',
+            'dest': 'archived'
         }
     ]
-
-# self.machine.add_transition(
-#             trigger='revoke_title',
-#             source=['authenticated_inactive', 'authenticated_active'],
-#             dest='authenticated_title-revoked'
-#         )
-
-#         self.machine.add_transition(
-#             trigger='archive_user',
-#             source='authenticated_title-revoked',
-#             dest='archived'
-#         )
 
 
 class UserMachineMixin(StateMachineMixinBase):
@@ -158,13 +158,13 @@ class UserMachineMixin(StateMachineMixinBase):
     def get_wf_graph(self):
         """Get the graph for this machine."""
         diagram_cls = MachineFactory.get_predefined(graph=True, nested=True)
-        machine = diagram_cls(
+        self.machine = diagram_cls(
             model=self,
             auto_transitions=False,
             title=type(self).__name__,
             **self.status_class.get_kwargs()  # noqa: C815
         )
-        return machine.get_graph()
+        return self.machine.get_graph()
 
 
 class User(UserMachineMixin, AbstractUser):
@@ -182,6 +182,13 @@ class User(UserMachineMixin, AbstractUser):
         max_length=32,
         help_text='User state',
     )
+
+    def __init__(self, *args, **kwargs):
+        super(User, self).__init__(*args, **kwargs)
+        print(self.state)
+        print(self.machine.models)
+        self.machine.models = [self]
+        print(self.machine.models)
 
 
 class UserModel(UserMachineMixin, models.Model):

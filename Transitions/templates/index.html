@@ -4,11 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>transitions test</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
 </head>
 <body>
-    <p>Hello World</p>
-    <form action="" method="POST"> {% csrf_token %}
-        <input type="submit" value="submit">
-    </form>
+    <div id="app">
+        [[message]]
+        [[name]]
+        <input v-model="message" type="text" placeholder="enter something" />
+        <button v-on:click="makePost">
+            test
+        </button>
+    </div>
+    
+
+    <script>
+        axios.defaults.xsrfCookieName = 'csrftoken'
+        axios.defaults.xsrfHeaderName = "X-CSRFTOKEN"
+        var app = new Vue({
+            el: '#app',
+            delimiters: ["[[", "]]"],
+            methods: {
+                makePost(){
+                    axios.post(
+                        'http://localhost:8000/main/',
+                        {
+                            payload: this.message 
+                        }
+                    )
+                }
+            },
+            data: {
+                message: 'Hello Testing!',
+                name: 'test'
+            },
+            mounted: ()=> {
+                axios.get('http://localhost:8000/test').then( resp => {
+                    console.log(resp)
+                })
+            }
+        })
+    </script>
 </body>
 </html>
