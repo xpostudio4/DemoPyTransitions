@@ -3,3 +3,4 @@ env/
 */__pychache__/
 *.pyc
 .vscode/
+node_modules/
