@@ -16,9 +16,18 @@ from organizations.models import Organization
 
 class MainView(TemplateView):
     template_name = 'index.html'
+    
+    def get(self, request):
+        if request.user.is_authenticated and request.user.is_admin:
+            return render(request, 'admin.html')
+        
+        if request.user.is_authenticated and not request.user.is_admin:
+            return render(request, 'user.html')
+        
+        return render(request, self.template_name)
+        
 
     def post(self, request):
-        print(request.body)
         return render(request, 'index.html')
 
 
