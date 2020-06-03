@@ -40,16 +40,17 @@ INSTALLED_APPS = [
     'main',
     'django_extensions',
     'rest_framework',
-    'corsheaders'
+    'corsheaders',
+    'organizations'
 ]
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-       'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-    ),
+    )
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -132,10 +133,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
-STATIC_URL = 'static/'
-
-STATICFILES_DIRS = (
-    'http://localhost:8080/',
-)
+STATIC_URL = '/static/'
 
 AUTH_USER_MODEL = "main.User"

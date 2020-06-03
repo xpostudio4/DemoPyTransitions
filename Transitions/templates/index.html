@@ -10,8 +10,7 @@
 <body>
     <div id="app">
         [[message]]
-        [[name]]
-        <input v-model="message" type="text" placeholder="enter something" />
+        <input v-model="email" type="text" placeholder="enter something" />
         <button v-on:click="makePost">
             test
         </button>
@@ -27,16 +26,19 @@
             methods: {
                 makePost(){
                     axios.post(
-                        'http://localhost:8000/main/',
+                        'http://localhost:8000/users/invite/',
                         {
-                            payload: this.message 
+                            username: 'this.message',
+                            email: this.email
                         }
-                    )
+                    ).then( resp => {
+                        console.log(resp)
+                    })
                 }
             },
             data: {
                 message: 'Hello Testing!',
-                name: 'test'
+                email: ''
             },
             mounted: ()=> {
                 axios.get('http://localhost:8000/test').then( resp => {
