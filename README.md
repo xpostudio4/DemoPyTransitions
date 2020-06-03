@@ -8,4 +8,8 @@ In order to run the code, first run:
 
 Then:
 
+```python Transitions\manage.py migrate```
+
+and:
+
 ```python Transitions\manage.py runserver```
