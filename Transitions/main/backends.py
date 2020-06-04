@@ -20,7 +20,16 @@ from organizations.utils import default_org_model
 from organizations.utils import model_field_attr
 
 
+class RegistrationForm(UserRegistrationForm):
+
+    class Meta:
+        model = get_user_model()
+        exclude = ('is_staff', 'is_superuser', 'is_active', 'last_login',
+                   'date_joined', 'groups', 'user_permissions', 'user_state')
+
+
 class MesosInvitationBackend(InvitationBackend):
+    form_class = RegistrationForm
 
     def __init__(self, *args, **kwargs):
         super(MesosInvitationBackend, self).__init__(*args, **kwargs)
