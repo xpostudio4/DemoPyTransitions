@@ -15,20 +15,19 @@ from organizations.models import Organization
 
 
 class MainView(TemplateView):
-    template_name = 'index.html'
-    
+    template_name = 'base.html'
+
     def get(self, request):
-        if request.user.is_authenticated and request.user.is_admin:
+        if request.user.is_authenticated and request.user.is_superuser:
             return render(request, 'admin.html')
-        
-        if request.user.is_authenticated and not request.user.is_admin:
+
+        if request.user.is_authenticated and not request.user.is_superuser:
             return render(request, 'user.html')
-        
+
         return render(request, self.template_name)
-        
 
     def post(self, request):
-        return render(request, 'index.html')
+        return render(request, 'base.html')
 
 
 class TestView(TemplateView):
@@ -53,6 +52,6 @@ class InviteViewSet(viewsets.ViewSet):
         print(request)
         user = invitation_backend().invite_by_email(
                     request.data['email'],
-                    **{'domain': 'http://localhost:8000/',
+                    **{'domain': {'domain': 'localhost:8000'},
                         'organization': Organization.objects.last()})
         return Response({'message': 'Ok'}, status=status.HTTP_200_OK)

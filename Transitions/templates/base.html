@@ -6,13 +6,19 @@
     <title>{% block title %}transitions test{% endblock title %}</title>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+    <!-- UIkit CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.5.3/dist/css/uikit.min.css" />
+
+    <!-- UIkit JS -->
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.5.3/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.5.3/dist/js/uikit-icons.min.js"></script>
 </head>
-<body>
+<body style="margin: 20px;">
     {% block body %}
     <div id="app">
         [[message]]
-        <input v-model="email" type="text" placeholder="enter something" />
-        <button v-on:click="makePost">
+        <input class="uk-input" v-model="email" type="text" placeholder="enter something" />
+        <button class="uk-button uk-button-primary" v-on:click="makePost">
             test
         </button>
     </div>
