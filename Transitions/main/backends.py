@@ -9,6 +9,7 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.template import loader
 from django.utils.translation import ugettext as _
+from django import forms
 
 from organizations.backends.defaults import InvitationBackend
 from organizations.backends.forms import UserRegistrationForm
@@ -20,12 +21,26 @@ from organizations.utils import default_org_model
 from organizations.utils import model_field_attr
 
 
-class RegistrationForm(UserRegistrationForm):
+class RegistrationForm(forms.ModelForm):
+    password = forms.CharField(max_length=30, widget=forms.PasswordInput)
+    password_confirm = forms.CharField(max_length=30,
+                                       widget=forms.PasswordInput)
+
+    def __init__(self, *args, **kwargs):
+        super(RegistrationForm, self).__init__(*args, **kwargs)
+
+    def clean(self):
+        password = self.cleaned_data.get("password")
+        password_confirm = self.cleaned_data.get("password_confirm")
+        if password != password_confirm or not password:
+            raise forms.ValidationError(_("Your password entries must match"))
+        return super(RegistrationForm, self).clean()
 
     class Meta:
         model = get_user_model()
         exclude = ('is_staff', 'is_superuser', 'is_active', 'last_login',
-                   'date_joined', 'groups', 'user_permissions', 'user_state')
+                   'date_joined', 'groups', 'user_permissions', 'user_state',
+                   'first_name', 'last_name', 'name')
 
 
 class MesosInvitationBackend(InvitationBackend):
@@ -34,6 +49,9 @@ class MesosInvitationBackend(InvitationBackend):
     def __init__(self, *args, **kwargs):
         super(MesosInvitationBackend, self).__init__(*args, **kwargs)
 
+    def get_success_url(self):
+        return reverse('success_view')
+
     def activate_view(self, request, user_id, token):
         try:
             user = self.user_model.objects.get(id=user_id, is_active=False)
@@ -41,18 +59,5 @@ class MesosInvitationBackend(InvitationBackend):
             user.save()
         except self.user_model.DoesNotExist:
             raise Http404(_("Your URL may have expired."))
-        if not RegistrationTokenGenerator().check_token(user, token):
-            raise Http404(_("Your URL may have expired."))
-        form = self.get_form(data=request.POST or None, files=request.FILES or None, instance=user)
-        if form.is_valid():
-            form.instance.is_active = True
-            user = form.save()
-            user.set_password(form.cleaned_data['password'])
-            user.save()
-            self.activate_organizations(user)
-            user = authenticate(username=form.cleaned_data['username'],
-                                password=form.cleaned_data['password'])
-            login(request, user)
-            return redirect(self.get_success_url())
 
-        return render(request, self.registration_form_template, {'form': form})
+        return render(request, 'user.html')

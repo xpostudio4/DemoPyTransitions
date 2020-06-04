@@ -42,16 +42,23 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-
-class InviteViewSet(viewsets.ViewSet):
-    serializer_class = InviteSerializer
-
     permission_classes = (AllowAny, )
 
-    def post(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         print(request)
         user = invitation_backend().invite_by_email(
                     request.data['email'],
                     **{'domain': {'domain': 'localhost:8000'},
                         'organization': Organization.objects.last()})
+        return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
+
+    def patch(self, request, *args, **kwargs):
+        user_data = request.data
+        if user_data['password'] != user_data['confirm_password']:
+            return Response({'message': 'Passwords must match'}, status=status.HTTP_409_CONFLICT )
+        user = User.objects.get(email=user_data['email'])
+        user.username = user_data['username']
+        user.password = user_data['username']
+        user.first_sign_in(user.machine)
+        user.save()
         return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
