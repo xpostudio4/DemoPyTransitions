@@ -11,7 +11,7 @@ router.register(r'users', UserViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('main/', MainView.as_view(), name='main'),
+    path("", MainView.as_view(), name='main'),
     path('test/', TestView.as_view()),
     path('users/invite/', InviteViewSet.as_view({'post': 'post'}), name='invite'),
     path('', include(router.urls)),
