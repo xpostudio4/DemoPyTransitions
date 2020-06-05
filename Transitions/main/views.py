@@ -75,7 +75,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = User.objects.get(email=user_data['email'])
         user.archive_user(user.machine)
         user.save()
-        return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
+        return Response({'message': 'User deleted'}, status=status.HTTP_200_OK)
 
     def pre_auth(self, request):
         user_data = request.data['context']
