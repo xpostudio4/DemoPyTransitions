@@ -98,7 +98,7 @@ class UserStatus(StatusBase):
             'trigger': 'authentication_fail',
             'source': 'pre-authenticated',
             'dest': 'pre-authenticated',
-            # 'conditions': ['exceeded_tries']
+            'conditions': ['exceeded_tries']
         },
         {
             'trigger': 'authentication_fail',
@@ -173,7 +173,7 @@ class User(UserMachineMixin, AbstractUser):
     # around the globe.
     name = models.CharField(("Name of User"), blank=True, max_length=255)
 
-    # MAX_TRIES = 3
+    MAX_TRIES = 2
     user_state = models.CharField(
         null=False,
         blank=False,
@@ -185,10 +185,13 @@ class User(UserMachineMixin, AbstractUser):
 
     def __init__(self, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
-        print(self.state)
-        print(self.machine.models)
         self.machine.models = [self]
-        print(self.machine.models)
+        self.fail_tries = 0
+
+    @property
+    def exceeded_tries(self):
+        self.fail_tries += 1
+        return self.fail_tries == User.MAX_TRIES
 
 
 class UserModel(UserMachineMixin, models.Model):
