@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny
 import smtplib
 from organizations.backends import invitation_backend
 from organizations.models import Organization
+from main.tasks import invite_user_task
 
 
 class MainView(TemplateView):
@@ -63,13 +64,12 @@ class UserViewSet(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        user = invitation_backend().invite_by_email(
-                    request.data['email'],
-                    **{'domain': {'domain': 'localhost:8000'},
-                        'organization': Organization.objects.last()})
+        email = request.data['email']
+        sender_username = request.user.username
+        invite_user_task.delay(email, sender_username)
         return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
 
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch_test(self, request, *args, **kwargs):
         context = request.data['context']
         action = request.data['action']
         model_class = self.serializer_class.Meta.model
