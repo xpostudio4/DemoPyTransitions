@@ -45,6 +45,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     permission_classes = (AllowAny, )
 
+    model_pk = 'users_pk'
+
     def __init__(self, *args, **kwargs):
         super(UserViewSet, self).__init__(*args, **kwargs)
         self.patch_actions = {
@@ -67,7 +69,15 @@ class UserViewSet(viewsets.ModelViewSet):
                         'organization': Organization.objects.last()})
         return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
 
+    def dispatch(self, request, *args, **kwargs):
+        context = request.data['context']
+        action = request.data['action']
+        model_class = self.serializer_class.Meta.model
+        model = model_class.objects.get(id=kwargs[self.model_pk])
+        model.trigger(action, context)
+
     def patch(self, request, *args, **kwargs):
+        # return self.dispatch(request, *args, **kwargs)
         return self.patch_actions[request.data['action']](request)
 
     def delete(self, request, *args, **kwargs):
@@ -79,14 +89,19 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def pre_auth(self, request):
         user_data = request.data['context']
+
         if user_data['password'] != user_data['confirm_password']:
-            return Response({'message': 'Pre-auth'}, status=status.HTTP_409_CONFLICT)
+            return Response({'message': 'passwords must match'}, status=status.HTTP_409_CONFLICT)
         user = User.objects.get(email=user_data['email'])
-        user.username = user_data['username']
-        user.password = user_data['username']
+
         user.first_sign_in(user.machine)
+
+        user.username = user_data['username']
+        user.password = user_data['password']
+
         user.save()
-        return Response({'message': 'Pre-auth'}, status=status.HTTP_200_OK)
+
+        return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
 
     def auth(self, request):
         user_data = request.data['context']
