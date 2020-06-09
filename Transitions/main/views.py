@@ -20,7 +20,7 @@ class MainView(TemplateView):
 
     def get(self, request):
         if request.user.is_authenticated and request.user.is_superuser:
-            return render(request, 'admin.html')
+            return render(request, 'base.html')
 
         if request.user.is_authenticated and not request.user.is_superuser:
             return render(request, 'user.html')
@@ -66,10 +66,12 @@ class UserViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         email = request.data['email']
         sender_username = request.user.username
-        invite_user_task.delay(email, sender_username)
+        print('before task')
+        invite_user_task.delay(email, sender_username, queue='celery')
+        print('after task')
         return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
 
-    def dispatch_test(self, request, *args, **kwargs):
+    def dispatch_action(self, request, *args, **kwargs):
         context = request.data['context']
         action = request.data['action']
         model_class = self.serializer_class.Meta.model
