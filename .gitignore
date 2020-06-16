@@ -1,6 +1,7 @@
 env/
 *.sqlite3
-*/__pychache__/
+__pycache__/*
+*.cpython-38.pyc
 *.pyc
 .vscode/
 node_modules/

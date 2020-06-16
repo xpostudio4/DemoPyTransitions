@@ -34,30 +34,41 @@ class MainView(TemplateView):
 
 class DispatcherMixin(viewsets.ModelViewSet):
 
-    def perform_dispatch(self, request, pk=None, *args, **kwargs):
-        success, message = self.dispatch_action(request, pk)
+    def get_action_and_context_from_request(self, request):
 
+        context = request.data['context']
+        action = request.data['action']
+        
+        return action, context
+
+    def dispatch_action(self, request, pk=None, *args, **kwargs):
+
+        # TODO: Log enter and exit from this method
+
+        # TODO: Validate this action is for 'patch' method
+        
+        action, context = self.get_action_and_context_from_request(request)
+
+        # TODO: Check context is syntactically valid for action
+
+        model_class = self.serializer_class.Meta.model
+        
+        # TODO: Enter and exit from dispatcher
+        success, message = model_class.dispatcher(context, action, pk)
+        
         if not success:
             return Response({'message': message}, status=status.HTTP_400_BAD_REQUEST )
 
         return Response({'message': message}, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
+        return self.dispatch_action(request, *args, **kwargs)
 
-        pk = None
+    def partial_update(self, request, pk, *args, **kwargs):
+        return self.dispatch_action(request, pk, *args, **kwargs)
 
-        return self.perform_dispatch(request, pk, *args, **kwargs)
-
-
-    def partial_update(self, request, pk=None, *args, **kwargs):
-        return self.perform_dispatch(request, pk, *args, **kwargs)
-
-
-    def patch(self, request, pk=None, *args, **kwargs):
-        return self.partial_update(request, pk, *args, **kwargs)
-
-    def delete(self, request, pk=None, *args, **kwargs):
-        return self.perform_dispatch(request, pk, *args, **kwargs)
+    def delete(self, request, pk, *args, **kwargs):
+        return self.dispatch_action(request, pk, *args, **kwargs)
 
 
 class UserViewSet(DispatcherMixin):
@@ -84,21 +95,3 @@ class UserViewSet(DispatcherMixin):
             queryset = queryset.filter(user_state='pre-authenticated')
         return queryset
 
-    def dispatch_action(self, request, pk=None):
-        
-        action, context = self.get_action_and_context_from_request(request)
-        
-        # TODO: Validate this action is for 'patch' method
-
-        # TODO: Check context is syntactically valid for action
-
-        model_class = self.serializer_class.Meta.model
-        
-        return model_class.dispatcher(context, action, pk)
-
-    def get_action_and_context_from_request(self, request):
-
-        context = request.data['context']
-        action = request.data['action']
-        
-        return action, context

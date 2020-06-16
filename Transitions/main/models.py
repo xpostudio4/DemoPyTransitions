@@ -202,10 +202,7 @@ class User(UserMachineMixin, AbstractUser):
 
     @classmethod
     def dispatcher(cls, context, action, pk=None):
-        """
-        TODO: 
-        1- Verify either we are going to create, modify or retrieve an object.
-        """
+        # TODO: Make this method atomic
         if not pk:
             u = cls
         else:
@@ -217,30 +214,23 @@ class User(UserMachineMixin, AbstractUser):
 
     @classmethod
     def create_invitation(cls, context):
-        try:
-            invite_user_task.delay(queue='celery', **context)
-        except:
-            return False, 'A problem has ocurred invitating user'
+
+        invite_user_task.delay(queue='celery', **context)
+
         return True, 'User was invitated successfully'
 
     def pre_auth(self, context):
-        try:
-            self.first_sign_in(self.machine)
+        
+        self.first_sign_in(self.machine)
 
-            self.username = context['username']
-            self.password = context['password']
+        self.username = context['username']
+        self.password = context['password']
 
-            self.save()
-        except:
-            return False, 'A problem has ocurred invitating user'
-
+        self.save()
         return True, 'User was pre-authenticated successfully'
 
     def auth(self, context):
-        try:
-            self.authentication_success(self.machine)
-            self.save()
-        except:
-            return False, 'A problem has ocurred invitating user'
+        self.authentication_success(self.machine)
+        self.save()
 
         return True, 'User was authenticated successfully'
