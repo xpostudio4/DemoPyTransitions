@@ -44,7 +44,6 @@ class DispatcherMixin(viewsets.ModelViewSet):
     def dispatch_action(self, request, pk=None, *args, **kwargs):
 
         # TODO: Log enter and exit from this method
-
         # TODO: Validate this action is for 'patch' method
         
         action, context = self.get_action_and_context_from_request(request)
@@ -61,12 +60,19 @@ class DispatcherMixin(viewsets.ModelViewSet):
 
         return Response({'message': message}, status=status.HTTP_200_OK)
 
+    # POST method is handle by the create method
     def create(self, request, *args, **kwargs):
         return self.dispatch_action(request, *args, **kwargs)
 
+    # PUT method is handle by the eupdate method
+    def update(self, request, pk, *args, **kwargs):
+        return self.dispatch_action(request, pk, *args, **kwargs)
+
+    # PATCH method is handle by the partial_update method
     def partial_update(self, request, pk, *args, **kwargs):
         return self.dispatch_action(request, pk, *args, **kwargs)
 
+    # DELETE method is handle by the delete method
     def delete(self, request, pk, *args, **kwargs):
         return self.dispatch_action(request, pk, *args, **kwargs)
 
@@ -76,17 +82,13 @@ class UserViewSet(DispatcherMixin):
     API endpoint that allows users to be viewed or edited.
     """
     queryset = User.objects.exclude(user_state='archived')
-
     serializer_class = UserSerializer
-
     permission_classes = (AllowAny, )
-
     model_pk = 'users_pk'
 
     def __init__(self, *args, **kwargs):
         super(UserViewSet, self).__init__(*args, **kwargs)
         
-
     def get_queryset(self):
         queryset = User.objects.exclude(user_state='archived')
 

@@ -6,7 +6,7 @@ from transitions.extensions import MachineFactory
 from django_transitions.workflow import StatusBase
 from django_transitions.workflow import StateMachineMixinBase
 from rest_framework.response import Response
-from main.tasks import invite_user_task
+from main import tasks
 
 # Create your models here.
 
@@ -202,35 +202,23 @@ class User(UserMachineMixin, AbstractUser):
 
     @classmethod
     def dispatcher(cls, context, action, pk=None):
-        # TODO: Make this method atomic
-        if not pk:
-            u = cls
-        else:
-            u = cls.objects.get(pk=pk)
-        
-        method = getattr(u, action)
+        # TODO: Make this method atomic    
+        task = getattr(tasks, action)
+        return task.delay(queue='celery', **context)
 
-        return method(context)
 
-    @classmethod
-    def create_invitation(cls, context):
+    # This methods below should be written as tasks for celery
+    # def pre_auth(self, context):
+    #     # You should modify this method to include 
+    #     # self.first_sign_in(self.machine)
 
-        invite_user_task.delay(queue='celery', **context)
+    #     # self.username = context['username']
+    #     # self.password = context['password']
 
-        return True, 'User was invitated successfully'
+    #     # self.save()
+    #     return first_sign_in_task.delay(queue='celery', **context)
 
-    def pre_auth(self, context):
-        
-        self.first_sign_in(self.machine)
-
-        self.username = context['username']
-        self.password = context['password']
-
-        self.save()
-        return True, 'User was pre-authenticated successfully'
-
-    def auth(self, context):
-        self.authentication_success(self.machine)
-        self.save()
-
-        return True, 'User was authenticated successfully'
+    # def auth(self, context):
+    #     # self.authentication_success(self.machine)
+    #     # self.save()
+    #     return authenticate.delay(queue='celery', **context)
