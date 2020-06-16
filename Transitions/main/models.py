@@ -5,6 +5,8 @@ from transitions.extensions import HierarchicalMachine as Machine
 from transitions.extensions import MachineFactory
 from django_transitions.workflow import StatusBase
 from django_transitions.workflow import StateMachineMixinBase
+from rest_framework.response import Response
+from main.tasks import invite_user_task
 
 # Create your models here.
 
@@ -187,21 +189,58 @@ class User(UserMachineMixin, AbstractUser):
         super(User, self).__init__(*args, **kwargs)
         self.machine.models = [self]
         self.fail_tries = 0
+        # self.dispatch_actions = {
+        #     'pre_auth': self.pre_auth,
+        #     'auth': self.auth,
+        #     'create': self.create_invitation
+        # }
 
     @property
     def exceeded_tries(self):
         self.fail_tries += 1
         return self.fail_tries == User.MAX_TRIES
 
+    @classmethod
+    def dispatcher(cls, context, action, pk=None):
+        """
+        TODO: 
+        1- Verify either we are going to create, modify or retrieve an object.
+        """
+        if not pk:
+            u = cls
+        else:
+            u = cls.objects.get(pk=pk)
+        
+        method = getattr(u, action)
 
-class UserModel(UserMachineMixin, models.Model):
-    name = models.CharField(("Name of User"), blank=True, max_length=255)
+        return method(context)
 
-    user_state = models.CharField(
-        null=False,
-        blank=False,
-        default=UserStatus.SM_INITIAL_STATE,
-        choices=UserStatus.STATE_CHOICES,
-        max_length=32,
-        help_text='User state',
-    )
+    @classmethod
+    def create_invitation(cls, context):
+        try:
+            invite_user_task.delay(queue='celery', **context)
+        except:
+            return False, 'A problem has ocurred invitating user'
+        return True, 'User was invitated successfully'
+
+    def pre_auth(self, context):
+        try:
+            self.first_sign_in(self.machine)
+
+            self.username = context['username']
+            self.password = context['password']
+
+            self.save()
+        except:
+            return False, 'A problem has ocurred invitating user'
+
+        return True, 'User was pre-authenticated successfully'
+
+    def auth(self, context):
+        try:
+            self.authentication_success(self.machine)
+            self.save()
+        except:
+            return False, 'A problem has ocurred invitating user'
+
+        return True, 'User was authenticated successfully'

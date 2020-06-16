@@ -9,8 +9,10 @@ class UserSerializer(serializers.ModelSerializer):
             'username',
             'name',
             'email',
-            'user_state'
+            'user_state',
         ]
+    def validate_serializer(self, value):
+        pass
 
 
 class InviteSerializer(serializers.Serializer):

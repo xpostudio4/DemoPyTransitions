@@ -25,7 +25,17 @@ SECRET_KEY = '-q+2m9if8n+(qpaspo%*gq-#^t!s^gkd0re*0sqaz*@zl$utyb'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'syslog':{
+            'class':'logging.handlers.SysLogHandler'}},
+     'loggers': {
+        '': {
+            'handlers': ['syslog'],
+        }
+    }
+}
 CORS_ORIGIN_WHITELIST = [
     "http://localhost:8000",
     "http://127.0.0.1:8000"

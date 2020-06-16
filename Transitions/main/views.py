@@ -12,8 +12,9 @@ from rest_framework.permissions import AllowAny
 import smtplib
 from organizations.backends import invitation_backend
 from organizations.models import Organization
-from main.tasks import invite_user_task
-
+from rest_framework.decorators import MethodMapper
+import logging
+logger = logging.getLogger()
 
 class MainView(TemplateView):
     template_name = 'base.html'
@@ -31,12 +32,35 @@ class MainView(TemplateView):
         return render(request, 'base.html')
 
 
-class TestView(TemplateView):
-    def get(self, request):
-        return JsonResponse({'message': 'Hello from the other side'})
+class DispatcherMixin(viewsets.ModelViewSet):
+
+    def perform_dispatch(self, request, pk=None, *args, **kwargs):
+        success, message = self.dispatch_action(request, pk)
+
+        if not success:
+            return Response({'message': message}, status=status.HTTP_400_BAD_REQUEST )
+
+        return Response({'message': message}, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+
+        pk = None
+
+        return self.perform_dispatch(request, pk, *args, **kwargs)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+    def partial_update(self, request, pk=None, *args, **kwargs):
+        return self.perform_dispatch(request, pk, *args, **kwargs)
+
+
+    def patch(self, request, pk=None, *args, **kwargs):
+        return self.partial_update(request, pk, *args, **kwargs)
+
+    def delete(self, request, pk=None, *args, **kwargs):
+        return self.perform_dispatch(request, pk, *args, **kwargs)
+
+
+class UserViewSet(DispatcherMixin):
     """
     API endpoint that allows users to be viewed or edited.
     """
@@ -50,10 +74,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def __init__(self, *args, **kwargs):
         super(UserViewSet, self).__init__(*args, **kwargs)
-        self.patch_actions = {
-            'pre_auth': self.pre_auth,
-            'auth': self.auth,
-        }
+        
 
     def get_queryset(self):
         queryset = User.objects.exclude(user_state='archived')
@@ -63,51 +84,21 @@ class UserViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(user_state='pre-authenticated')
         return queryset
 
-    def create(self, request, *args, **kwargs):
-        email = request.data['email']
-        sender_username = request.user.username
-        print('before task')
-        invite_user_task.delay(email, sender_username, queue='celery')
-        print('after task')
-        return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
+    def dispatch_action(self, request, pk=None):
+        
+        action, context = self.get_action_and_context_from_request(request)
+        
+        # TODO: Validate this action is for 'patch' method
 
-    def dispatch_action(self, request, *args, **kwargs):
+        # TODO: Check context is syntactically valid for action
+
+        model_class = self.serializer_class.Meta.model
+        
+        return model_class.dispatcher(context, action, pk)
+
+    def get_action_and_context_from_request(self, request):
+
         context = request.data['context']
         action = request.data['action']
-        model_class = self.serializer_class.Meta.model
-        model = model_class.objects.get(id=kwargs[self.model_pk])
-        model.trigger(action, context)
-
-    def patch(self, request, *args, **kwargs):
-        # return self.dispatch(request, *args, **kwargs)
-        return self.patch_actions[request.data['action']](request)
-
-    def delete(self, request, *args, **kwargs):
-        user_data = request.data
-        user = User.objects.get(email=user_data['email'])
-        user.archive_user(user.machine)
-        user.save()
-        return Response({'message': 'User deleted'}, status=status.HTTP_200_OK)
-
-    def pre_auth(self, request):
-        user_data = request.data['context']
-
-        if user_data['password'] != user_data['confirm_password']:
-            return Response({'message': 'passwords must match'}, status=status.HTTP_409_CONFLICT)
-        user = User.objects.get(email=user_data['email'])
-
-        user.first_sign_in(user.machine)
-
-        user.username = user_data['username']
-        user.password = user_data['password']
-
-        user.save()
-
-        return Response({'message': 'Ok'}, status=status.HTTP_200_OK)
-
-    def auth(self, request):
-        user_data = request.data['context']
-        user = User.objects.get(email=user_data['email'])
-        user.authentication_success(user.machine)
-        user.save()
-        return Response({'message': 'user is authenticated'}, status=status.HTTP_200_OK)
+        
+        return action, context

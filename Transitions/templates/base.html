@@ -37,11 +37,17 @@
             delimiters: ["[[", "]]"],
             methods: {
                 makePost(){
-                    axios.post(
-                        'http://localhost:8000/users/',
+                    console.log('sending patch')
+                    axios.patch(
+                        'http://localhost:8000/users/1/',
                         {
-                            username: 'this.message',
-                            email: this.email
+                            action: 'pre_auth',
+                            context: {
+                                username: 'miguelito',
+                                email: this.email,
+                                password: 'p@ssw0rd',
+                                confirm_password: 'p@ssw0rd'
+                            }
                         }
                     ).then( resp => {
                         console.log(resp)
@@ -50,12 +56,7 @@
             },
             data: {
                 message: 'Hello Testing!',
-                email: ''
-            },
-            mounted: ()=> {
-                axios.get('http://localhost:8000/test').then( resp => {
-                    console.log(resp)
-                })
+                email: 'mrmiguetara2@gmail.com'
             }
         })
     </script>
