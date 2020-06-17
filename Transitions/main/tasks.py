@@ -26,3 +26,8 @@ def invite_user_task(email, *args, **kwargs):
             email,
             **{'domain': {'domain': 'localhost:8000'},
                 'organization': Organization.objects.last()})
+
+
+@task(name='pre_auth')
+def pre_auth():
+    pass

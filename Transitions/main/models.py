@@ -206,7 +206,6 @@ class User(UserMachineMixin, AbstractUser):
         task = getattr(tasks, action)
         return task.delay(queue='celery', **context)
 
-
     # This methods below should be written as tasks for celery
     # def pre_auth(self, context):
     #     # You should modify this method to include 
